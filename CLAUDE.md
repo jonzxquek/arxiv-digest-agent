@@ -5,7 +5,7 @@
 A multi-agent AI pipeline built with CrewAI that fetches recent ArXiv papers on a topic, filters them for relevance, clusters them by theme, and writes a structured newsletter digest exported as a PDF.
 
 **Environment:** macOS · Python 3.11.9 · virtualenv (venv/) · VS Code
-**LLM:** Groq free tier — llama-3.3-70b-versatile
+**LLM:** Agent 1 — OpenAI gpt-4o-mini · Agents 2, 3, 4 — Groq llama-3.3-70b-versatile
 **All dependencies:** installed via requirements.txt
 
 ---
@@ -137,13 +137,12 @@ Model: llama-3.3-70b-versatile
 
 | Agent | Estimated tokens |
 |---|---|
-| Agent 1 Fetcher | ~500 |
 | Agent 2 Filter | ~6,000 (heaviest — processes all abstracts) |
 | Agent 3 Clusterer | ~3,000 |
 | Agent 4 Writer | ~4,000 |
-| Full pipeline total | ~13,500 across 3-4 minutes runtime |
+| Full pipeline total (Agents 2-4) | ~13,000 across 3-4 minutes runtime |
 
-Current 2-agent run (Agents 1+2): ~7,100 tokens — safely under limit.
+Agent 1 (Fetcher) is on OpenAI — not counted here. Current 2-agent run: ~6,000 Groq tokens — safely under limit.
 
 ---
 
@@ -179,18 +178,17 @@ python -m py_compile main.py
 ## LLM configuration
 
 Large model — used for Agents 2, 3, 4 (reasoning-heavy tasks):
-llm_large = ChatGroq(
-    model="llama-3.3-70b-versatile",
+llm_large = LLM(
+    model="groq/llama-3.3-70b-versatile",
     temperature=0.2,
-    max_retries=3,
 )
 
 # Fetcher model — used for Agent 1 (tool-calling reliability)
 # GPT-4o Mini is used here instead of Groq because Llama 3.3 70B
 # was unreliably skipping tool calls and hallucinating papers from
 # training knowledge. GPT-4o Mini has superior tool-calling compliance.
-llm_fetcher = ChatOpenAI(
-    model="gpt-4o-mini",
+llm_fetcher = LLM(
+    model="openai/gpt-4o-mini",
     temperature=0.2,
     max_retries=3,
 )
@@ -232,7 +230,7 @@ python -m py_compile agents.py   — syntax check, no API call
 - Remove the hallucination ID check from main.py
 - Add tools to Agent 2 — it is intentionally tool-free
 - Change the data contract field names between agents
-- Suggest paid LLMs or paid APIs — this project is free tier only
+- Suggest adding more paid API providers — Agent 1 uses OpenAI intentionally; do not expand paid usage further without asking
 - Modify test_arxiv.py — it is a verification script, not pipeline code
 - Read, print, or log the contents of .env
 - Use llm_large on the fetcher_agent — it must stay on llm_fetcher (GPT-4o Mini) due to tool-calling reliability requirements
