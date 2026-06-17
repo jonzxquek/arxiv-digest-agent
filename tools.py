@@ -26,7 +26,7 @@ class ArxivSearchTool(BaseTool):
         cutoff = datetime.now(timezone.utc) - timedelta(days=days_back)
 
         search = arxiv.Search(
-            query=f"{topic} AND cat:{category}",
+            query=f'"{topic}" AND cat:{category}',
             max_results=max_results,
             sort_by=arxiv.SortCriterion.SubmittedDate,
             sort_order=arxiv.SortOrder.Descending,

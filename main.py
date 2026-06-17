@@ -24,7 +24,7 @@ load_dotenv()
 inputs = {
     "topic": "retrieval augmented generation",
     "category": "cs.AI",
-    "days_back": 7,
+    "days_back": 30,
     "max_results": 5,
 }
 

@@ -14,7 +14,7 @@ A multi-agent AI pipeline built with CrewAI that fetches recent ArXiv papers on 
 
 | File | Purpose |
 |---|---|
-| `.env` | GROQ_API_KEY — never read, print, or log this |
+| `.env` | GROQ_API_KEY and OPENAI_API_KEY — never read, print, or log these |
 | `agents.py` | All CrewAI Agent definitions + LLM config |
 | `tasks.py` | All CrewAI Task definitions + context chaining |
 | `tools.py` | Custom ArxivSearchTool (BaseTool subclass) |
@@ -125,6 +125,9 @@ CrewAI adds an Anthropic-specific cache marker that Groq rejects. The patch must
 8. Temperature set to 0.2 across all agents
 Lower temperature = more deterministic output = more reliable JSON structure. Do not raise above 0.3.
 
+9. Agent 1 uses GPT-4o Mini (OpenAI) not Groq Llama
+Llama 3.3 70B was hallucinating papers by skipping the arxiv_search tool call entirely and generating papers from training knowledge. GPT-4o Mini has significantly more reliable tool-calling behaviour. Agent 1 is the only agent using OpenAI — Agents 2, 3, 4 remain on Groq Llama. Requires OPENAI_API_KEY in .env and langchain-openai package installed.
+
 ---
 
 ## Rate limit — Groq free tier
@@ -141,6 +144,21 @@ Model: llama-3.3-70b-versatile
 | Full pipeline total | ~13,500 across 3-4 minutes runtime |
 
 Current 2-agent run (Agents 1+2): ~7,100 tokens — safely under limit.
+
+---
+
+## Rate limit — OpenAI free credit (Agent 1 only)
+
+Model: gpt-4o-mini
+Free credit: $5 on signup — approximately 2,000+ Agent 1 runs
+Monitor usage at: platform.openai.com → Settings → Billing
+
+| Agent | Platform | Model |
+|---|---|---|
+| Agent 1 Fetcher | OpenAI | gpt-4o-mini |
+| Agent 2 Filter | Groq | llama-3.3-70b-versatile |
+| Agent 3 Clusterer | Groq | llama-3.3-70b-versatile |
+| Agent 4 Writer | Groq | llama-3.3-70b-versatile |
 
 ---
 
@@ -163,6 +181,16 @@ python -m py_compile main.py
 Large model — used for Agents 2, 3, 4 (reasoning-heavy tasks):
 llm_large = ChatGroq(
     model="llama-3.3-70b-versatile",
+    temperature=0.2,
+    max_retries=3,
+)
+
+# Fetcher model — used for Agent 1 (tool-calling reliability)
+# GPT-4o Mini is used here instead of Groq because Llama 3.3 70B
+# was unreliably skipping tool calls and hallucinating papers from
+# training knowledge. GPT-4o Mini has superior tool-calling compliance.
+llm_fetcher = ChatOpenAI(
+    model="gpt-4o-mini",
     temperature=0.2,
     max_retries=3,
 )
@@ -207,6 +235,7 @@ python -m py_compile agents.py   — syntax check, no API call
 - Suggest paid LLMs or paid APIs — this project is free tier only
 - Modify test_arxiv.py — it is a verification script, not pipeline code
 - Read, print, or log the contents of .env
+- Use llm_large on the fetcher_agent — it must stay on llm_fetcher (GPT-4o Mini) due to tool-calling reliability requirements
 
 ---
 

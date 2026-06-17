@@ -3,6 +3,7 @@ litellm>=1.89.0
 crewai-tools>=0.14.0
 arxiv>=2.1.0
 langchain-groq>=0.2.0
+langchain-openai>=0.2.0
 fpdf2>=2.7.9
 pydantic>=2.0.0
 python-dotenv>=1.0.0
