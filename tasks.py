@@ -6,7 +6,7 @@ fetch_task = Task(
         "Search ArXiv for recent papers on the topic: '{topic}'.\n"
         "Use the category: '{category}'.\n"
         "Look back '{days_back}' days.\n"
-        "Fetch up to 50 papers.\n"
+        "Fetch up to {max_results} papers.\n"
         "Return the full list of papers as a JSON array. "
         "Do not summarise or filter — return everything you find."
     ),

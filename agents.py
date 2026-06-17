@@ -1,9 +1,8 @@
-from langchain_groq import ChatGroq
-from crewai import Agent
+from crewai import Agent, LLM
 from tools import ArxivSearchTool
 
-llm_large = ChatGroq(
-    model="llama-3.3-70b-versatile",
+llm_large = LLM(
+    model="groq/llama-3.3-70b-versatile",
     temperature=0.2
 )
 
