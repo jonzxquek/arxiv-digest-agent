@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from crewai import Agent, LLM
 #agent - crewAI's class for building an LLM-powered worker
 #LLM - crewAI's wrapper for connecting to a language model
@@ -65,3 +68,22 @@ filter_agent = Agent(
     # No external calls are needed. Max iterations = 2 is intentionally low because this agent has a simple
     # well defined job - if it cant do it in 2 steps the prompt is not the problem
 )
+
+
+cluster_agent = Agent(
+    role = "Research thematic analyst",
+    goal = (
+        "Group the provided research papers into clear, meaningful themes"
+        "that reflect genuine research directions emerging this week."
+    ),
+    backstory = (
+        "You are a senior AI research analyst who reads hundreds of papers "
+        "weekly. You have a talent for spotting when multiple research teams "
+        "are independently converging on the same problem from different angles. "
+        "You identify themes from evidence in the papers themselves — never from "
+        "assumptions or prior knowledge. You always return valid JSON."
+    ),
+    llm = llm_large,
+    verbose = True,
+    max_iter = 2
+    )

@@ -45,6 +45,7 @@ class ArxivSearchTool(BaseTool):
                 "authors":   [a.name for a in result.authors[:3]],
                 "abstract":  result.summary.replace("\n", " ").strip()[:200],
                 "published": result.published.strftime("%Y-%m-%d"),
+                "url":       result.entry_id,
             })
 
         if not papers:

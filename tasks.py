@@ -1,5 +1,5 @@
 from crewai import Task
-from agents import fetcher_agent, filter_agent
+from agents import fetcher_agent, filter_agent, cluster_agent
 # Brings in CrewAI's Task class and the agent you defined in agents.py. 
 # The task needs to know which agent it responsible for executing it.
 
@@ -77,4 +77,68 @@ filter_task = Task(
     ),
     agent=filter_agent,
     context=[fetch_task]
+)
+
+cluster_task = Task(
+    description=(
+        "You have been given a JSON array of scored, filtered ArXiv papers "
+        "on the topic '{topic}'. This array is in your context from the "
+        "previous task and is the ONLY source of papers you may work with.\n\n"
+
+        "STRICT RULES:\n"
+        "- You MUST NOT invent, generate, or add any papers of your own.\n"
+        "- You MUST NOT use training knowledge to produce paper content.\n"
+        "- Every paper in your output must have an 'id' that exactly matches "
+        "one from the input list.\n"
+        "- Do not duplicate papers across themes.\n"
+        "- Every theme must contain at least 2 papers.\n\n"
+
+        "YOUR TASK:\n"
+        "1. Read all paper titles and abstracts carefully.\n"
+        "2. Identify 3-5 emergent research themes. These must arise from "
+        "what the papers actually say — do not use predefined categories.\n"
+        "3. Assign each paper to exactly one theme — the one it fits best.\n"
+        "4. Name each theme in plain English (5-8 words maximum).\n"
+        "5. Write a one-sentence description for each theme that explains "
+        "what specifically unifies the papers in it.\n"
+        "6. If fewer than 3 clear themes exist, create 2 broader themes "
+        "rather than forcing artificial distinctions.\n\n"
+
+        "For each paper inside a theme, include only these fields:\n"
+        "id, title, relevance_score, reason\n\n"
+
+        "OUTPUT FORMAT:\n"
+        "Return ONLY a raw JSON object starting with {{ and ending with }}.\n"
+        "No markdown, no code fences, no explanation text, no preamble.\n\n"
+
+        "The JSON must follow this exact structure:\n"
+        "{{\n"
+        '  "themes": [\n'
+        "    {{\n"
+        '      "name": "theme name here",\n'
+        '      "description": "one sentence explaining what unifies these papers",\n'
+        '      "papers": [\n'
+        "        {{\n"
+        '          "id": "arxiv url",\n'
+        '          "title": "paper title",\n'
+        '          "relevance_score": 8,\n'
+        '          "reason": "one sentence from scoring agent"\n'
+        "        }}\n"
+        "      ]\n"
+        "    }}\n"
+        "  ],\n"
+        '  "total_papers": 14,\n'
+        '  "total_themes": 3\n'
+        "}}"
+    ),
+    expected_output=(
+        "A raw JSON object with a 'themes' array. Each theme has: "
+        "name (str), description (str), papers (array of objects with "
+        "id, title, relevance_score, reason). "
+        "Plus top-level fields: total_papers (int), total_themes (int). "
+        "No fabricated papers. No duplicate papers across themes. "
+        "Every paper id must match one from the input list."
+    ),
+    agent= cluster_agent,
+    context=[filter_task],
 )

@@ -13,8 +13,14 @@ _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 #So when CrewAI tries to stamp a message with the cache marker, it calls our 
 #replacement instead — which just hands the message back untouched, with no cache_breakpoint added.
 from crewai import Crew, Process
-from agents import fetcher_agent, filter_agent
-from tasks import fetch_task, filter_task
+from agents import fetcher_agent, filter_agent, cluster_agent
+from tasks import fetch_task, filter_task, cluster_task
+
+from validators import (
+    validate_filter_output,
+    validate_date_window,
+    validate_cluster_output,
+)
 
 load_dotenv()
 
@@ -25,63 +31,50 @@ inputs = {
     "topic": "retrieval augmented generation",
     "category": "cs.AI",
     "days_back": 30,
-    "max_results": 5,
+    "max_results": 10,
 }
 
 crew = Crew(
-    agents=[fetcher_agent, filter_agent],  # list of workers available
-    tasks=[fetch_task, filter_task],  # list of jobs to do
+    agents=[fetcher_agent, filter_agent, cluster_agent],  # list of workers available
+    tasks=[fetch_task, filter_task, cluster_task],  # list of jobs to do
     process=Process.sequential,
     verbose=True
 )
 
 if __name__ == "__main__":
-    print("\n=== Running Agents 1 + 2: Fetcher → Filter ===\n")
+    print("\n=== Running Agents 1 + 2 + 3 ===\n")
     result = crew.kickoff(inputs=inputs)
 
-    print("\n=== Raw output from Filter agent ===\n")
-    print(result.raw)
+    print("\n=== Validating outputs ===\n")
 
-    try:
-        match = re.search(r'\[.*\]', result.raw, re.DOTALL)
-        if not match:
-            raise json.JSONDecodeError("No JSON array found", result.raw, 0)
-        filtered_papers = json.loads(match.group(0))
+    filtered_papers = validate_filter_output(
+        raw=filter_task.output.raw,
+        fetch_raw=fetch_task.output.raw,
+    )
 
-        # Pull the fetched task output to compare IDs
-        if fetch_task.output is None:
-            print("\n⚠️  Fetch task produced no output — cannot verify IDs.")
-        else:
-            match2 = re.search(r'\[.*\]', fetch_task.output.raw, re.DOTALL)
-            fetched_papers = json.loads(match2.group(0)) if match2 else []
+    if not filtered_papers:
+        print("\n🛑 Stopping — Agent 2 output failed validation.")
+        exit()
 
-            # Date-window check — catches Agent 1 hallucinations (fabricated papers from training data
-            # tend to be old; real fetched papers must fall within the requested days_back window)
-            cutoff = datetime.now() - timedelta(days=inputs["days_back"] + 1)
-            outside_window = [
-                p for p in fetched_papers
-                if datetime.strptime(p.get("published", "1900-01-01"), "%Y-%m-%d") < cutoff
-            ]
-            if outside_window:
-                print(f"\n⚠️  DATE-WINDOW VIOLATION — {len(outside_window)} fetched paper(s) are outside the {inputs['days_back']}-day window (Agent 1 hallucination suspected):")
-                for p in outside_window:
-                    print(f"   [{p.get('published', '?')}] {p.get('title', p.get('id', '?'))}")
-            else:
-                print(f"\n✅ Date-window check passed — all {len(fetched_papers)} fetched papers are within the {inputs['days_back']}-day window.")
+    validate_date_window(
+        papers=json.loads(
+            re.search(r'\[.*\]', fetch_task.output.raw, re.DOTALL).group(0)
+        ),
+        days_back=int(inputs["days_back"]),
+    )
 
-            fetched_ids = {p["id"] for p in fetched_papers}
-            returned_ids = {p["id"] for p in filtered_papers}
+    clustered = validate_cluster_output(
+        raw=result.raw,
+        filtered_papers=filtered_papers,
+    )
 
-            hallucinated = returned_ids - fetched_ids
+    if not clustered:
+        print("\n🛑 Stopping — Agent 3 output failed validation.")
+        exit()
 
-            if hallucinated:
-                print(f"\n⚠️  HALLUCINATION DETECTED — {len(hallucinated)} fabricated paper(s):")
-                for hid in hallucinated:
-                    print(f"   {hid}")
-            else:
-                print(f"\n✅ Valid JSON. {len(filtered_papers)} papers passed — all IDs verified against input.")
-                for p in filtered_papers:
-                    print(f"  [{p.get('relevance_score', '?')}/10] {p['title']}")
+    output_path = f"outputs/cluster_{datetime.now().strftime('%Y-%m-%d')}.json"
+    with open(output_path, "w") as f:
+        json.dump(clustered, f, indent=2)
+    print(f"\n💾 Cluster output saved to {output_path}")
 
-    except json.JSONDecodeError:
-        print("\n⚠️  Output was not valid JSON. Check the filter agent's prompt.")
+    print("\n=== Pipeline complete — ready for Agent 4 ===\n")
