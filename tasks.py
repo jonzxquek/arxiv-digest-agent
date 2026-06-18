@@ -91,7 +91,9 @@ cluster_task = Task(
         "- Every paper in your output must have an 'id' that exactly matches "
         "one from the input list.\n"
         "- Do not duplicate papers across themes.\n"
-        "- Every theme must contain at least 2 papers.\n\n"
+        "- Every theme must contain at least 2 papers.\n"
+        "- Count the total number of papers in your input FIRST. "
+        "If total papers ≤ 6, you MUST use exactly 2 themes — no more.\n\n"
 
         "YOUR TASK:\n"
         "1. Read all paper titles and abstracts carefully.\n"
@@ -101,7 +103,8 @@ cluster_task = Task(
         "4. Name each theme in plain English (5-8 words maximum).\n"
         "5. Write a one-sentence description for each theme that explains "
         "what specifically unifies the papers in it.\n"
-        "6. If fewer than 3 clear themes exist, create 2 broader themes "
+        "6. If total filtered papers ≤ 6, use exactly 2 themes. "
+        "If fewer than 3 clear themes exist, create 2 broader themes "
         "rather than forcing artificial distinctions.\n\n"
 
         "For each paper inside a theme, include only these fields:\n"

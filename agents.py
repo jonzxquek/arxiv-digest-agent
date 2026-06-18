@@ -83,7 +83,7 @@ cluster_agent = Agent(
         "You identify themes from evidence in the papers themselves — never from "
         "assumptions or prior knowledge. You always return valid JSON."
     ),
-    llm = llm_large,
+    llm = llm_fetcher,
     verbose = True,
     max_iter = 2
     )
