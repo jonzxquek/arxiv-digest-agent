@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv  # Parses the values in the .env file
 #This is a module inside the CrewAI library (not your code). CrewAI built a prompt caching feature specifically for Anthropic/Claude models. 
 #When an agent sends messages to the LLM, this module stamps a special marker called cache_breakpoint onto the system message
@@ -20,7 +20,9 @@ from validators import (
     validate_filter_output,
     validate_date_window,
     validate_cluster_output,
+    validate_writer_output,
 )
+from renderer import generate_pdf
 
 load_dotenv()
 
@@ -72,14 +74,27 @@ if __name__ == "__main__":
         print("\n🛑 Stopping — Agent 3 output failed validation.")
         exit()
 
-    output_path = f"outputs/cluster_{datetime.now().strftime('%Y-%m-%d')}.json"
-    with open(output_path, "w") as f:
-        json.dump(clustered, f, indent=2)
-    print(f"\n💾 Cluster output saved to {output_path}")
+    newsletter = validate_writer_output(
+        raw=result.raw,
+        clustered=clustered,
+    )
 
-    digest_path = f"outputs/digest_{datetime.now().strftime('%Y-%m-%d')}.md"
-    with open(digest_path, "w") as f:
-        f.write(writer_task.output.raw)
-    print(f"\n💾 Digest saved to {digest_path}")
+    if not newsletter:
+        print("\n🛑 Stopping — Agent 4 output failed validation.")
+        exit()
+
+    cluster_path = f"outputs/cluster_{datetime.now().strftime('%Y-%m-%d')}.json"
+    with open(cluster_path, "w") as f:
+        json.dump(clustered, f, indent=2)
+    print(f"\n💾 Cluster saved to {cluster_path}")
+
+    md_path = f"outputs/digest_{datetime.now().strftime('%Y-%m-%d')}.md"
+    with open(md_path, "w") as f:
+        f.write(newsletter)
+    print(f"📄 Newsletter saved to {md_path}")
+
+    pdf_path = f"outputs/digest_{datetime.now().strftime('%Y-%m-%d')}.pdf"
+    generate_pdf(md_path, pdf_path, topic=inputs["topic"].title())
+    print(f"🖨️  PDF saved to {pdf_path}")
 
     print("\n=== Pipeline complete ===\n")

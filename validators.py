@@ -156,6 +156,26 @@ def validate_cluster_output(raw: str, filtered_papers: list) -> dict | None:
     return clustered
 
 
+def validate_writer_output(raw: str, clustered: dict) -> str | None:
+    if not raw or not raw.strip():
+        print("\n⚠️  Agent 4 returned empty output.")
+        return None
 
+    required_sections = ["introduction", "spotlight", "what to watch"]
+    missing = [s for s in required_sections if s not in raw.lower()]
+    if missing:
+        print(f"\n⚠️  Agent 4 output missing sections: {missing}")
+        return None
 
+    theme_names = [
+        t["name"] for t in clustered.get("themes", [])
+        if t["name"] != "Other Notable Work"
+    ]
+    missing_themes = [t for t in theme_names if t.lower() not in raw.lower()]
+    if missing_themes:
+        print(f"\n⚠️  Agent 4 output missing theme sections: {missing_themes}")
+        return None
+
+    print(f"\n✅ Agent 4 valid — all sections present, {len(theme_names)} themes covered.")
+    return raw.strip()
 
