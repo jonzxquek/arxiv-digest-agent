@@ -94,7 +94,7 @@ if __name__ == "__main__":
     print(f"📄 Newsletter saved to {md_path}")
 
     pdf_path = f"outputs/digest_{datetime.now().strftime('%Y-%m-%d')}.pdf"
-    generate_pdf(md_path, pdf_path, topic=inputs["topic"].title())
+    generate_pdf(md_path, pdf_path, topic=inputs["topic"].title(), clustered=clustered)
     print(f"🖨️  PDF saved to {pdf_path}")
 
     print("\n=== Pipeline complete ===\n")
