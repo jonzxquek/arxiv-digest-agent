@@ -13,8 +13,8 @@ _crewai_cache.mark_cache_breakpoint = lambda msg: msg
 #So when CrewAI tries to stamp a message with the cache marker, it calls our 
 #replacement instead — which just hands the message back untouched, with no cache_breakpoint added.
 from crewai import Crew, Process
-from agents import fetcher_agent, filter_agent, cluster_agent
-from tasks import fetch_task, filter_task, cluster_task
+from agents import fetcher_agent, filter_agent, cluster_agent, writer_agent
+from tasks import fetch_task, filter_task, cluster_task, writer_task
 
 from validators import (
     validate_filter_output,
@@ -35,14 +35,14 @@ inputs = {
 }
 
 crew = Crew(
-    agents=[fetcher_agent, filter_agent, cluster_agent],  # list of workers available
-    tasks=[fetch_task, filter_task, cluster_task],  # list of jobs to do
+    agents=[fetcher_agent, filter_agent, cluster_agent, writer_agent],  # list of workers available
+    tasks=[fetch_task, filter_task, cluster_task, writer_task],  # list of jobs to do
     process=Process.sequential,
     verbose=True
 )
 
 if __name__ == "__main__":
-    print("\n=== Running Agents 1 + 2 + 3 ===\n")
+    print("\n=== Running Agents 1 + 2 + 3 + 4 ===\n")
     result = crew.kickoff(inputs=inputs)
 
     print("\n=== Validating outputs ===\n")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     )
 
     clustered = validate_cluster_output(
-        raw=result.raw,
+        raw=cluster_task.output.raw,
         filtered_papers=filtered_papers,
     )
 
@@ -77,4 +77,9 @@ if __name__ == "__main__":
         json.dump(clustered, f, indent=2)
     print(f"\n💾 Cluster output saved to {output_path}")
 
-    print("\n=== Pipeline complete — ready for Agent 4 ===\n")
+    digest_path = f"outputs/digest_{datetime.now().strftime('%Y-%m-%d')}.md"
+    with open(digest_path, "w") as f:
+        f.write(writer_task.output.raw)
+    print(f"\n💾 Digest saved to {digest_path}")
+
+    print("\n=== Pipeline complete ===\n")

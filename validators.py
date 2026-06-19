@@ -90,20 +90,38 @@ def validate_cluster_output(raw: str, filtered_papers: list) -> dict | None:
     all_clustered_ids = []
     issues            = []
 
-    # If only one paper is returned is not really a themeis more of a outlier
+    # Separate full themes from lone-paper themes
+    valid_themes = []
+    lone_papers  = []
+
     for theme in clustered["themes"]:
-        theme_papers = theme.get("papers", []) #If agent omit the paper fields entirely, safetly returns an empty list
+        theme_papers = theme.get("papers", [])
 
         if len(theme_papers) < 2:
-            issues.append(
-                f"Theme '{theme.get('name', 'unnamed')}' "
-                f"has only {len(theme_papers)} paper(s) — minimum is 2."
-            )
+            print(f"\n⚠️  Theme '{theme.get('name', 'unnamed')}' has only "
+                  f"{len(theme_papers)} paper(s) — moving to 'Other Notable Work'.")
+            lone_papers.extend(theme_papers)
+        else:
+            valid_themes.append(theme)
 
-        for paper in theme_papers:
+    # Collect lone papers into a catch-all section
+    if lone_papers:
+        valid_themes.append({
+            "name": "Other Notable Work",
+            "description": (
+                "Papers that offer valuable insights this week but did not "
+                "cluster with others into a shared research theme."
+            ),
+            "papers": lone_papers,
+        })
+        clustered["themes"]       = valid_themes
+        clustered["total_themes"] = len(valid_themes)
+
+    # Check all paper IDs are real and count them
+    for theme in clustered["themes"]:
+        for paper in theme.get("papers", []):
             pid = paper.get("id")
             all_clustered_ids.append(pid)
-
             if pid not in filtered_ids:
                 issues.append(f"Hallucinated paper ID in clustering: {pid}")
 
@@ -119,10 +137,7 @@ def validate_cluster_output(raw: str, filtered_papers: list) -> dict | None:
 
     actual_total = len(all_clustered_ids)
     if clustered["total_papers"] != actual_total:
-        issues.append(
-            f"total_papers field says {clustered['total_papers']} "
-            f"but found {actual_total} papers across themes."
-        )
+        clustered["total_papers"] = actual_total
 
     if issues:
         print(f"\n⚠️  Agent 3 validation issues:")

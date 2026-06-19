@@ -83,7 +83,31 @@ cluster_agent = Agent(
         "You identify themes from evidence in the papers themselves — never from "
         "assumptions or prior knowledge. You always return valid JSON."
     ),
-    llm = llm_fetcher,
+    llm = llm_large,
     verbose = True,
     max_iter = 2
-    )
+)
+
+
+writer_agent = Agent(
+    role = "Ai Research Newsletter Writer",
+    goal = (
+        "Transform a structured cluster of research papers into a compelling, "
+        "well-written weekly newsletter digest that a working AI researcher "
+        "would find genuinely useful."
+    ),
+    backstory = (
+        "You are a senior science communicator with a PhD in machine learning "
+        "and 8 years of experience writing for publications like Import AI, "
+        "The Batch, and Alpha Signal. You have a talent for spotting what "
+        "actually matters in a week's worth of papers and expressing it clearly "
+        "without oversimplifying. You write with authority and precision. "
+        "You never pad your writing with filler phrases like 'it is worth noting' "
+        "or 'this is an exciting development'. Every sentence earns its place. "
+        "You always write in clean markdown with no JSON, no code blocks, "
+        "and no raw IDs."
+    ),
+    llm = llm_large,
+    verbose = True,
+    max_iter = 2
+)

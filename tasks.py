@@ -1,5 +1,5 @@
 from crewai import Task
-from agents import fetcher_agent, filter_agent, cluster_agent
+from agents import fetcher_agent, filter_agent, cluster_agent, writer_agent
 # Brings in CrewAI's Task class and the agent you defined in agents.py. 
 # The task needs to know which agent it responsible for executing it.
 
@@ -91,21 +91,20 @@ cluster_task = Task(
         "- Every paper in your output must have an 'id' that exactly matches "
         "one from the input list.\n"
         "- Do not duplicate papers across themes.\n"
-        "- Every theme must contain at least 2 papers.\n"
-        "- Count the total number of papers in your input FIRST. "
-        "If total papers ≤ 6, you MUST use exactly 2 themes — no more.\n\n"
+        "- Every theme must contain at least 2 papers. "
+        "If any theme would have only 1 paper, move that paper into the "
+        "most topically related existing theme — do not leave it alone.\n\n"
 
         "YOUR TASK:\n"
         "1. Read all paper titles and abstracts carefully.\n"
-        "2. Identify 3-5 emergent research themes. These must arise from "
-        "what the papers actually say — do not use predefined categories.\n"
-        "3. Assign each paper to exactly one theme — the one it fits best.\n"
-        "4. Name each theme in plain English (5-8 words maximum).\n"
-        "5. Write a one-sentence description for each theme that explains "
-        "what specifically unifies the papers in it.\n"
-        "6. If total filtered papers ≤ 6, use exactly 2 themes. "
-        "If fewer than 3 clear themes exist, create 2 broader themes "
-        "rather than forcing artificial distinctions.\n\n"
+        "2. Group papers into 3-5 themes that arise from what the papers "
+        "actually say — not predefined categories.\n"
+        "3. Check every theme: if any has only 1 paper, merge it into the "
+        "most topically related theme before finalising.\n"
+        "4. Assign each paper to exactly one theme — the one it fits best.\n"
+        "5. Name each theme in plain English (5-8 words maximum).\n"
+        "6. Write a one-sentence description for each theme that explains "
+        "what specifically unifies the papers in it.\n\n"
 
         "For each paper inside a theme, include only these fields:\n"
         "id, title, relevance_score, reason\n\n"
@@ -144,4 +143,44 @@ cluster_task = Task(
     ),
     agent= cluster_agent,
     context=[filter_task],
+)
+
+writer_task = Task(
+    description=(
+        "You have been given a JSON object containing research papers grouped "
+        "into named themes on the topic '{topic}'. This is in your context from "
+        "the previous task and is the ONLY source of content you may use.\n\n"
+
+        "STRICT RULES:\n"
+        "- You MUST NOT invent, fabricate, or add any papers, findings, or claims "
+        "not present in your context.\n"
+        "- Do not include raw JSON, paper IDs, code blocks, or relevance scores "
+        "in your output.\n"
+        "- Write only in clean markdown — headers, paragraphs, and bullet points.\n\n"
+
+        "YOUR TASK:\n"
+        "Write a weekly AI research newsletter digest with the following sections "
+        "in this exact order:\n\n"
+        "1. **Introduction** (2-3 sentences): What was the dominant research "
+        "focus this week? What is the single most important pattern across all themes?\n\n"
+        "2. **Theme Sections** (one per theme): Use the theme name as a markdown "
+        "header (##). Write 2-3 sentences summarising what the papers in that theme "
+        "collectively say — not a list of papers, but a synthesised insight. "
+        "Then list each paper as a bullet: bold title, followed by one sentence "
+        "on its specific contribution.\n\n"
+        "3. **Spotlight Paper** (## Spotlight): Pick the single most significant "
+        "paper across all themes. Write a short paragraph (3-4 sentences) explaining "
+        "what it does, why it matters, and what it changes.\n\n"
+        "4. **What to Watch** (## What to Watch): One paragraph (2-3 sentences) "
+        "on the open question or emerging direction these papers collectively point toward.\n\n"
+        "Write with authority and precision. Every sentence must earn its place."
+    ),
+    expected_output=(
+        "A clean markdown string with four sections in order: Introduction, "
+        "one ## section per theme, ## Spotlight, ## What to Watch. "
+        "No JSON, no code blocks, no paper IDs, no relevance scores. "
+        "All content must be grounded in the papers provided in context."
+    ),
+    agent=writer_agent,
+    context=[cluster_task],
 )
